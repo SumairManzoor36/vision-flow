@@ -5,6 +5,9 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import type { Role } from "@prisma/client";
+// Explicit import forces TS to resolve the subpath before the augmentation below.
+// Required workaround for next-auth@5 beta: see nextauthjs/next-auth#12095.
+import type { JWT } from "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
