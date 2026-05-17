@@ -1,5 +1,22 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { loadEnvFile } from "node:process";
+import { existsSync } from "node:fs";
+
+// `tsx prisma/seed.ts` does not auto-load .env files the way the Prisma CLI
+// does. When `npm run db:seed` is invoked directly (without first sourcing
+// .env.production), DATABASE_URL is missing and PrismaClient blows up.
+// loadEnvFile() is a no-op for vars that are already exported, so this is
+// safe under deploy.sh / Plesk (real env always wins).
+for (const file of [".env.production", ".env"]) {
+  if (existsSync(file)) {
+    try {
+      loadEnvFile(file);
+    } catch {
+      /* ignore parse errors — fall through to next file */
+    }
+  }
+}
 
 const prisma = new PrismaClient();
 
