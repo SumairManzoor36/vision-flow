@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleError, ok, requireRoleSession, HttpError } from "@/lib/api";
 import { parseCSVToRecords } from "@/lib/csv";
+import { slugify } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,16 @@ export async function POST(req: NextRequest) {
         where: { name: { equals: trimmed } },
       });
       if (!cat && !dryRun) {
-        cat = await prisma.category.create({ data: { name: trimmed } });
+        const baseSlug = slugify(trimmed) || `category-${Date.now().toString(36)}`;
+        let slug = baseSlug;
+        for (
+          let i = 2;
+          await prisma.category.findUnique({ where: { slug } });
+          i++
+        ) {
+          slug = `${baseSlug}-${i}`;
+        }
+        cat = await prisma.category.create({ data: { name: trimmed, slug } });
       }
       const id = cat?.id ?? null;
       if (id) categoryCache.set(key, id);
