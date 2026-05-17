@@ -167,11 +167,14 @@ fi
 # ----- npm ci ---------------------------------------------------------------
 if (( DO_INSTALL )); then
   step "Installing dependencies (npm ci)"
+  # --include=dev forces devDependencies (autoprefixer, postcss, tailwindcss,
+  # prisma, typescript, tsx) to install even when NODE_ENV=production. Next.js
+  # needs these at `next build` time. They're harmless at runtime.
   if [[ ! -f package-lock.json ]]; then
     warn "No package-lock.json found — falling back to 'npm install' (less reproducible)"
-    npm install --no-audit --no-fund || { err "npm install failed"; exit 4; }
+    npm install --include=dev --no-audit --no-fund || { err "npm install failed"; exit 4; }
   else
-    npm ci --no-audit --no-fund || { err "npm ci failed"; exit 4; }
+    npm ci --include=dev --no-audit --no-fund || { err "npm ci failed"; exit 4; }
   fi
   ok "Dependencies installed"
 else
