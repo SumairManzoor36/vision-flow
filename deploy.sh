@@ -170,11 +170,22 @@ if (( DO_INSTALL )); then
   # --include=dev forces devDependencies (autoprefixer, postcss, tailwindcss,
   # prisma, typescript, tsx) to install even when NODE_ENV=production. Next.js
   # needs these at `next build` time. They're harmless at runtime.
-  if [[ ! -f package-lock.json ]]; then
-    warn "No package-lock.json found — falling back to 'npm install' (less reproducible)"
-    npm install --include=dev --no-audit --no-fund || { err "npm install failed"; exit 4; }
-  else
+  # Only use `npm ci` when package-lock.json is actually committed to git
+  # (the canonical source of truth). Any lock file present on disk but not
+  # tracked is a leftover from a previous `npm install` on this server, and
+  # will be stale the moment package.json bumps a version — causing
+  # `npm ci` to error with "lock file out of sync".
+  if [[ -f package-lock.json ]] \
+     && [[ -d .git ]] \
+     && git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
     npm ci --include=dev --no-audit --no-fund || { err "npm ci failed"; exit 4; }
+  else
+    if [[ -f package-lock.json ]]; then
+      warn "package-lock.json exists but is not tracked in git — treating as stale and using 'npm install'"
+    else
+      warn "No package-lock.json found — falling back to 'npm install' (less reproducible)"
+    fi
+    npm install --include=dev --no-audit --no-fund || { err "npm install failed"; exit 4; }
   fi
   ok "Dependencies installed"
 else
