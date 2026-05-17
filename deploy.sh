@@ -249,12 +249,15 @@ if (( DO_HEALTH )) && (( DO_RESTART )); then
       sleep 3
       HTTP_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" -m 10 "$HEALTH_URL" || echo "000")
       log "  attempt $attempt → HTTP $HTTP_CODE"
-      if [[ "$HTTP_CODE" =~ ^(200|301|302|307|308)$ ]]; then
+      # Accept any 2xx (success) or 3xx (redirect) — both prove the
+      # Node app is up and responding. NextAuth/middleware commonly
+      # emits 303 on first hit while it sets the session cookie.
+      if [[ "$HTTP_CODE" =~ ^(2[0-9]{2}|3[0-9]{2})$ ]]; then
         ok "Site responded with HTTP $HTTP_CODE"
         break
       fi
     done
-    if ! [[ "$HTTP_CODE" =~ ^(200|301|302|307|308)$ ]]; then
+    if ! [[ "$HTTP_CODE" =~ ^(2[0-9]{2}|3[0-9]{2})$ ]]; then
       err "Health check failed (last code: $HTTP_CODE). Inspect ~/logs/error_log"
       exit 7
     fi
